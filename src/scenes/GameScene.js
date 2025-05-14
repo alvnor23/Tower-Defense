@@ -108,7 +108,7 @@ export class GameScene extends Phaser.Scene {
             this.gameWidth, infoBarHeight, this.menuColor, 1);
 
         // items placed in infoBar get x and y position later
-        this.startButton = this.createButton(0, 0, 'playButton', { width: 100, height: 100 },
+        this.startButton = this.createButton(0, 0, 'playButton', { width: 90, height: 90 },
             () => {
                 const buttonImg = this.startButton.list[0];
                 if (buttonImg.texture.key == "playButton") { // == game is paused or not started
