@@ -10,10 +10,10 @@ export class Home extends Phaser.Scene {
     }
 
     create() { // Displays objects on screen
-        this.gameWidth = this.sys.game.config.height;
         this.gameWidth = this.sys.game.config.width;
+        this.gameHeight = this.sys.game.config.height;
 
-        this.background = this.add.image(this.gameWidth / 2, this.gameHeight / 2, 'background').setDisplaySize(gameWidth, gameWidth);
+        this.background = this.add.image(this.gameWidth / 2, this.gameHeight / 2, 'background').setDisplaySize(this.gameWidth, this.gameHeight);
 
         this.menuText = this.add.bitmapText(this.gameWidth / 2, this.gameHeight / 2, 'menuFont', "TOWER DEFENSE", 104);
         this.menuText.setOrigin(0.5).setTintFill(0xffffff); // center and make white
@@ -24,7 +24,7 @@ export class Home extends Phaser.Scene {
         this.playButtonText = this.add.bitmapText(0, -15, 'menuFont', 'Play', 85).setOrigin(0.5); // move back a little for middle of non-shadowed area of button
 
         // Since playButton img is bigger than the button, a container is needed for interactivity
-        this.buttonContainer = this.add.container(this.gameWidth / 2, gameWidth * (2 / 3)).setAlpha(0);
+        this.buttonContainer = this.add.container(this.gameWidth / 2, this.gameHeight * (2 / 3)).setAlpha(0);
         this.buttonContainer.setSize(this.playButton.displayWidth * (5 / 6), this.playButton.displayHeight * (1 / 3));
         this.buttonContainer.setInteractive();
         this.buttonContainer.add([this.playButton, this.playButtonText]);

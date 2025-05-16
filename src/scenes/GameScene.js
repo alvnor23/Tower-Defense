@@ -81,7 +81,7 @@ export class GameScene extends Phaser.Scene {
 
         // Start values
         this.health = 300;
-        this.money = 60000;
+        this.money = 600;
         this.round = 0;
         this.points = 0;
         this.highScore = this.registry.get('highScore') || 0; // either 0 or previous high score
