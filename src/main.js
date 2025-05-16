@@ -11,7 +11,7 @@ const config = {
     backgroundColor: '#000000',
     pixelArt: true,
     scene: [
-        GameScene // change so Home first
+        Home, GameScene
     ],
     scale: {
         mode: Phaser.Scale.FIT,

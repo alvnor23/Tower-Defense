@@ -5,6 +5,11 @@ export class BossEnemy extends Enemy {
     constructor(scene, x, y, row, texture, properties) {
         super(scene, x, y, row, texture, properties);
         this.intendedHeight = properties.height;
+
+        this.maxHealth = properties.health;
+        this.healthBarBg = this.scene.add.graphics();
+        this.healthBar = this.scene.add.graphics();
+        this.updateHealthBar();
     }
 
     move() {
@@ -29,14 +34,13 @@ export class BossEnemy extends Enemy {
                 };
             },
             onComplete: () => {
-                this.scene.healthText.setText(`Health: ${this.scene.health -= 9999}`);
+                this.scene.healthText.setText(`Health: ${this.scene.health = 0}`);
                 this.destroySelf();
             }
         });
 
         const topY = this.scene.bridgeY - this.intendedHeight / 2 + this.scene.tileHeight / 2;
         const bottomY = this.scene.bridgeY + this.scene.tileHeight * (this.scene.gridRows - 0.5) - this.intendedHeight / 2;
-        console.log(this.scene.bridgeY + this.scene.tileHeight * (this.scene.gridRows - 0.5) - this.intendedHeight / 2)
 
         const firstTargetY = (bottomY - this.y >= this.y - topY) ? bottomY : topY;
         const secondTargetY = (firstTargetY == bottomY) ? topY : bottomY;
@@ -96,6 +100,33 @@ export class BossEnemy extends Enemy {
         return tower;
     }
 
+    updateHealthBar() {
+        this.healthBar.clear();
+        this.healthBarBg.clear();
+
+        const barX = this.scene.gameWidth / 2;
+        const barY = this.scene.gameHeight / 50;
+        const barWidth = this.scene.gameWidth / 2;
+        const barHeight = this.scene.gameWidth / 30;
+        const barMarginX = barWidth * 0.01;
+        const barMarginY = barHeight * 0.05;
+
+        // background - gray
+        this.healthBarBg.fillStyle(0x222222, 1);
+        this.healthBarBg.fillRect(barX - barWidth / 2, barY, barWidth, barHeight);
+
+        const healthRatio = this.health / this.maxHealth;
+
+        // Health - red
+        this.healthBar.fillStyle(0xff0000, 1);
+        this.healthBar.fillRect(
+            barX + barMarginX - barWidth / 2,
+            barY + barMarginY,
+            (barWidth - 2 * barMarginX) * healthRatio,
+            barHeight - 2 * barMarginY
+        );
+    }
+
     die() {
         // add money and points
         this.scene.money += this.money;
@@ -105,7 +136,14 @@ export class BossEnemy extends Enemy {
         this.togglePause();
         this.play(this.textureKey + '_death');
         this.once('animationcomplete', () => {
+            // Call to scene's end game function
             this.scene.endGame("win");
+
+            // destroy health bar
+            this.healthBar.destroy();
+            this.healthBarBg.destroy();
+
+            // destroy self
             this.destroySelf();
         });
     }

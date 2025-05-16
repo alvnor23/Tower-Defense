@@ -12,7 +12,6 @@ export class Enemy extends Phaser.GameObjects.Sprite {
         // sometimes texture becomes texture object instead of just the key (string) and then key has to be extracted
         this.textureKey = (typeof texture === 'string') ? texture : texture.key;
 
-        // console.log(properties);
         this.speed = properties.speed || 80; // pixels per second
         this.range = properties.range || 1;
         this.damage = properties.damage || 20;
@@ -101,7 +100,7 @@ export class Enemy extends Phaser.GameObjects.Sprite {
                 };
             },
             onComplete: () => {
-                this.scene.healthText.setText(`Health: ${this.scene.health -= 20}`);
+                this.scene.healthText.setText(`Health: ${this.scene.health -= this.health}`);
                 this.destroySelf();
             }
         });

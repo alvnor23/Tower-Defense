@@ -5,32 +5,26 @@ export class Home extends Phaser.Scene {
 
     preload() { // Loads images, music
         this.load.image('background', 'assets/backgrounds/1/bamboo bridge.png');
-        // TODO: pixelated yellowbrown background for menu text
-        // TODO: get nicer, different font for all text
-        // TODO: remove unneccessary buttons and other unused media
         this.load.bitmapFont('menuFont', 'assets/fonts/menu_font/menu_font0.png', 'assets/fonts/menu_font/menu_font.xml.fnt');
         this.load.image('startButton', 'assets/buttons/simple/6.png');
     }
 
     create() { // Displays objects on screen
-        // Common values
-        const centerX = this.cameras.main.centerX;
-        const centerY = this.cameras.main.centerY;
-        const gameHeight = this.sys.game.config.height;
-        const gameWidth = this.sys.game.config.width;
+        this.gameWidth = this.sys.game.config.height;
+        this.gameWidth = this.sys.game.config.width;
 
-        this.background = this.add.image(centerX, centerY, 'background').setDisplaySize(gameWidth, gameHeight);
+        this.background = this.add.image(this.gameWidth / 2, this.gameHeight / 2, 'background').setDisplaySize(gameWidth, gameWidth);
 
-        this.menuText = this.add.bitmapText(centerX, centerY, 'menuFont', "TOWER DEFENSE", 104);
+        this.menuText = this.add.bitmapText(this.gameWidth / 2, this.gameHeight / 2, 'menuFont', "TOWER DEFENSE", 104);
         this.menuText.setOrigin(0.5).setTintFill(0xffffff); // center and make white
 
         // playButton
         this.playButton = this.add.image(0, 0, 'startButton'); // 0, 0 is center of container
-        this.playButton.setDisplaySize(720, 480); // increase width a little (from 480)
+        this.playButton.setDisplaySize(720, 480);
         this.playButtonText = this.add.bitmapText(0, -15, 'menuFont', 'Play', 85).setOrigin(0.5); // move back a little for middle of non-shadowed area of button
 
         // Since playButton img is bigger than the button, a container is needed for interactivity
-        this.buttonContainer = this.add.container(centerX, gameHeight * (2 / 3)).setAlpha(0);
+        this.buttonContainer = this.add.container(this.gameWidth / 2, gameWidth * (2 / 3)).setAlpha(0);
         this.buttonContainer.setSize(this.playButton.displayWidth * (5 / 6), this.playButton.displayHeight * (1 / 3));
         this.buttonContainer.setInteractive();
         this.buttonContainer.add([this.playButton, this.playButtonText]);

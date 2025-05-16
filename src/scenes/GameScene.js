@@ -80,8 +80,8 @@ export class GameScene extends Phaser.Scene {
         this.highlightMenuColor = 0x2222cc;
 
         // Start values
-        this.health = 100;
-        this.money = 600;
+        this.health = 300;
+        this.money = 60000;
         this.round = 0;
         this.points = 0;
         this.highScore = this.registry.get('highScore') || 0; // either 0 or previous high score
@@ -118,7 +118,6 @@ export class GameScene extends Phaser.Scene {
                         this.pauseGame();
                     } else {
                         this.round++;
-                        console.log("start " + this.round);
                         this.applyLevel(this.round);
                         Enemy.allEnemies.forEach(enemy => enemy.move());
                     }
@@ -199,13 +198,13 @@ export class GameScene extends Phaser.Scene {
 
         this.towers = this.add.group([ // groups are like arrays but make managing similar game objects easier
             new Tower(this, 0, 0, 'archerTower', {
-                health: 100, range: 10, damage: 5, shootSpeed: 5, projectileTexture: 'arrow'
+                health: 100, range: 10, damage: 10, shootSpeed: 5, projectileTexture: 'arrow'
             }),
             new Tower(this, 0, 0, 'fireTower', {
-                health: 100, range: 4, damage: 20, shootSpeed: 3, projectileTexture: 'fire'
+                health: 100, range: 3, damage: 25, shootSpeed: 3, projectileTexture: 'fire'
             }),
             new Tower(this, 0, 0, 'mageTower', {
-                health: 100, range: 6, damage: 50, shootSpeed: 2, projectileTexture: 'magic', projectileWidth: 50, projectileHeight: 25
+                health: 100, range: 5, damage: 40, shootSpeed: 2, projectileTexture: 'magic', projectileWidth: 50, projectileHeight: 25
             }),
         ]);
 
@@ -237,6 +236,38 @@ export class GameScene extends Phaser.Scene {
             'fireTower': 700,
             'mageTower': 2000
         }
+
+        // tower stat increments
+        this.towerStatIncrements = {
+            // range always incremented by 1
+            "range": [1, 1, 1, 1, 1],
+            "damage": [5, 5, 5, 10, 15],
+            "shootSpeed": [1, 2, 3, 3, 4],
+            "health": [10, 20, 30, 40, 50]
+        }
+
+        // tower upgrades prices
+        this.towerUpgradesPrices = {
+            "archerTower": {
+                "range": [100, 90, 80, 70, 60],
+                "damage": [100, 200, 300, 400, 500],
+                "shootSpeed": [100, 150, 200, 250, 300],
+                "health": [100, 150, 300, 300, 500]
+            },
+            "fireTower": {
+                "range": [200, 250, 300, 250, 200],
+                "damage": [150, 250, 350, 450, 550],
+                "shootSpeed": [200, 300, 400, 500, 600],
+                "health": [150, 200, 350, 350, 550]
+            },
+            "mageTower": {
+                "range": [300, 400, 500, 500, 500],
+                "damage": [250, 350, 450, 550, 650],
+                "shootSpeed": [400, 500, 600, 700, 800],
+                "health": [200, 250, 400, 400, 600]
+            }
+        }
+
 
         // price tags
         for (let i = 0; i < this.shopTowers.list.length; i++) {
@@ -322,6 +353,7 @@ export class GameScene extends Phaser.Scene {
                     this.selectedTower.input.cursor = 'grab';
                     this.selectedTower.placed = false;
 
+                    this.shopTowerDragged = true;
                     this.dragStartTime = Date.now();
 
                     // Hide shop, show grid and show obstruction zone
@@ -359,9 +391,11 @@ export class GameScene extends Phaser.Scene {
 
                 // remove tower if in 80 % in obstuction zone
                 if (this.checkOverlap(towerBounds, graphicsBounds, 0.8)) {
-                    console.log("INTERSECTION");
+                    this.shopTowerDragged = false;
+
                     this.toggleGameGrid();
                     this.toggleObstructionZone();
+
                     Tower.placedTowers.pop();
                     this.selectedTower.destroy();
                     this.tileCenterBelow = null;
@@ -379,10 +413,10 @@ export class GameScene extends Phaser.Scene {
 
                 this.selectedTower.x = this.tileCenterBelow[0];
                 this.selectedTower.y = this.tileCenterBelow[1] - this.towerHeightInGame / 2 + 20; // adjusted for space in image
-                console.log(`Tower placed at (${this.selectedTower.x}, ${this.selectedTower.y})`);
                 Tower.placedTowers.push(this.selectedTower);
                 this.selectedTower.setDepth(this.towersDepth + this.selectedTower.row);
                 this.selectedTower.input.cursor = "pointer";
+                this.shopTowerDragged = false;
 
                 const localTower = this.selectedTower;
                 localTower.on('pointerdown', () => {
@@ -483,7 +517,7 @@ export class GameScene extends Phaser.Scene {
             // Level 8: 4 orcBerserks, 4 orcWarriors, 3 skeletons, 3 mages 
             "Level 8": this.createLevel(
                 { enemy: "orcBerserk", count: 2, column: 0 },
-                { enemy: "orcWarrior", count: 2, column: 0},
+                { enemy: "orcWarrior", count: 2, column: 0 },
                 { enemy: "skeleton", count: 3, column: -1 },
                 { enemy: "orcWarrior", count: 1, column: -1 },
                 { enemy: "orcBerserk", count: 1, column: -1 },
@@ -514,22 +548,13 @@ export class GameScene extends Phaser.Scene {
             )
         };
 
-        // Idea: make orcs bigger/ like giants?
-        // BTW level speed should normally be very slow like PvZ. TODO: make all things way slower
-
-        // Boss should have visible health bar and die very slowly
-
-        // Make upgrade scaling huge but also make max damage very good idk like 5x start
-
-        // Fix health loss on enemy reaching far side
-
         this.enemyProperties = {
             "rat": {
                 width: 160,
                 height: 120,
                 speed: 55,
                 damage: 20,
-                health: 75,
+                health: 70,
                 money: 200,
                 points: 100,
                 reverseAnimOrder: true,
@@ -558,8 +583,8 @@ export class GameScene extends Phaser.Scene {
                 hitableWidth: 70
             },
             "orcBerserk": {
-                width: 240,
-                height: 240,
+                width: 230,
+                height: 230,
                 speed: 40,
                 damage: 115,
                 health: 250,
@@ -572,8 +597,8 @@ export class GameScene extends Phaser.Scene {
                 hitableWidth: 125
             },
             "orcWarrior": {
-                width: 240,
-                height: 240,
+                width: 230,
+                height: 230,
                 speed: 35,
                 damage: 125,
                 health: 220,
@@ -603,8 +628,8 @@ export class GameScene extends Phaser.Scene {
                 height: 620,
                 speed: 20,
                 damage: 9999999,
-                health: 3000,
-                money: 15000,
+                health: 1500,
+                money: 0,
                 points: 10000,
                 runFrames: 9,
                 attackFrames: 5,
@@ -622,7 +647,6 @@ export class GameScene extends Phaser.Scene {
         this.bossEnemies = [
             "samurai"
         ]
-        this.round = 9; // 9 . remove
     }
 
     update(t, dt) { // game loop following continuous actions
@@ -660,6 +684,12 @@ export class GameScene extends Phaser.Scene {
             this.gameState = "inactive"; // allows start button to begin next wave
         }
 
+        // Add and update boss health bar if on last level
+        if (this.round == 10) {
+            const boss = Enemy.allEnemies.find(enemy => enemy instanceof BossEnemy);
+            boss?.updateHealthBar?.();
+        }
+
         this.updateAllText();
         // adjust text x positions for text getting longer
         this.adjustInfoX();
@@ -676,6 +706,19 @@ export class GameScene extends Phaser.Scene {
         Tower.placedTowers?.forEach(tower => tower?.disableInteractive());
         this.startButton.disableInteractive();
         this.shopExtension.disableInteractive();
+
+        // close shop if open
+        if (this.shopActive) this.toggleShop();
+
+        // remove any towers being dragged and also then the obstruction zone
+        if (this.shopTowerDragged) {
+            Tower.placedTowers.pop();
+            this.selectedTower.destroy();
+            this.selectedTower = null;
+
+            this.shopTowerDragged = false;
+            this.toggleObstructionZone();
+        }
 
         // tint overlay 
         this.endScreenOverlay = this.add.rectangle(this.gameWidth / 2, this.gameHeight / 2, this.gameWidth, this.gameHeight, 0x000000, 0.4)
@@ -697,7 +740,7 @@ export class GameScene extends Phaser.Scene {
 
         // update high score
         this.highScore = Math.max(this.points, this.highScore);
-        this.registry.set('highScore', this.highScore);
+        this.registry.set('highScore', this.highScore); // save highscore
 
         // score container
         this.endScreenScores = this.add.container(this.gameWidth / 2, this.gameHeight / 3, [score, highScore])
@@ -852,28 +895,32 @@ export class GameScene extends Phaser.Scene {
         const textColor = "black";
 
         const tower = rowProperties.tower;
+        const towerType = tower.texture.key;
         const btnWidth = rowProperties.btnWidth;
         const btnHeight = rowProperties.btnHeight;
 
-        let price = 50 * (tower.upgrades[stat] + 1);
-        const startValue = tower[stat] - tower.upgrades[stat];
-        const maxValue = startValue + 5; // 5 upgrades from start value available
+        // Price set to value based on how many upgrades tower has to stat for that stat for that tower
+        let price = this.towerUpgradesPrices[towerType][stat][tower.upgrades[stat]] || 0;
+
+        const maxUpgrades = 5;
 
         const statLabel = this.add.text(0, 0, `${stat[0].toUpperCase() + stat.substring(1)} (${tower[stat]})`, { fontSize: `${fontSize}px`, color: textColor });
 
-        const statInstallments = this.createStatInstallmentsBar(0, fontSize, tower.upgrades[stat], 5);
-        const upgradePriceText = this.add.text(0, 0, `${price < 300 ? price : "max"}`, { fontSize: btnFontSize, color: textColor }).setOrigin(0.5);
+        const statInstallments = this.createStatInstallmentsBar(0, fontSize, tower.upgrades[stat], maxUpgrades);
+        const upgradePriceText = this.add.text(0, 0, `${ (tower.upgrades[stat] == maxUpgrades) ? "max" : price}`, { fontSize: btnFontSize, color: textColor }).setOrigin(0.5);
         const upgradeButton = this.createButton(0, 0, "upgrade", { width: btnWidth, height: btnHeight }, () => {
-            if (this.money >= price && tower[stat] < maxValue) {
+            if (this.money >= price && tower.upgrades[stat] != maxUpgrades) {
                 this.money -= price;
-                // upgrade stat and counter of stat upgrades
-                tower[stat] += 1;
-                tower.upgrades[stat] += 1;
 
-                // update range highlighting if range upgraded
+                // if range upgraded, update range highlighting
                 if (stat == "range") {
                     this.highlightTowerRange(tower, tower.x, tower.y + tower.height / 2);
                 }
+
+                // upgrade stat and counter of stat upgrades
+                // tower[stat] incremented based on amount of upgrades made to the stat
+                tower[stat] += this.towerStatIncrements[stat][tower.upgrades[stat]] || 0;
+                tower.upgrades[stat] += 1;
 
                 // update visbile values
                 container.update();
@@ -899,10 +946,11 @@ export class GameScene extends Phaser.Scene {
         ]);
 
         container.update = () => {
+            price = this.towerUpgradesPrices[towerType][stat][tower.upgrades[stat]] || 0;
+
             statLabel.setText(`${stat[0].toUpperCase() + stat.substring(1)} (${tower[stat]})`);
-            price += 50;
-            upgradePriceText.setText(`${price < 300 ? price : "max"}`);
-            statInstallments.updateValue(tower.upgrades[stat])
+            upgradePriceText.setText(`${ (tower.upgrades[stat] == maxUpgrades) ? "max" : price}`);
+            statInstallments.updateValue(tower.upgrades[stat]);
 
             if (this.money < price) {
                 this.input.setDefaultCursor("not-allowed");
@@ -968,7 +1016,7 @@ export class GameScene extends Phaser.Scene {
 
     // remove enemies, towers and reset values
     resetGame() {
-        this.health = 100;
+        this.health = 300;
         this.money = 600;
         this.round = 0;
         this.points = 0;
@@ -1009,7 +1057,6 @@ export class GameScene extends Phaser.Scene {
         Enemy.allEnemies = []; // secure array is empty
 
         const enemies = this.levels[`Level ${level}`];
-        console.log(this.levels, level, this.levels[`Level ${level}`]);
         for (const enemy of enemies) {
             this.spawnEnemy(enemy.type, enemy.row, enemy.column, this.enemyProperties[enemy.type]);
         }
@@ -1039,8 +1086,7 @@ export class GameScene extends Phaser.Scene {
     // returns x and y for enemy to spawn in depending on row and column
     enemySpawnPos(row, column, width, height) {
         // x value given so column 0 means the enemy is just not visible and every column adds a space equal to tileWidth
-        // const x = -width / 2 + this.tileWidth * column;
-        const x = 300;
+        const x = -width / 2 + this.tileWidth * column;
 
         // y value given so the bottom of the enemy gets placed on the middle of its row.
         const y = this.bridgeY + this.tileHeight * (row - 0.5) - height / 2;
@@ -1106,7 +1152,6 @@ export class GameScene extends Phaser.Scene {
 
     // Slide obstruction zone down from above the screen
     toggleObstructionZone() {
-        this.shopTowerDragged = !this.shopTowerDragged;
         const direction = this.shopTowerDragged ? `+= ${this.obstructionZoneHeight}` : `-= ${this.obstructionZoneHeight}`;
 
         this.tweens.add({
