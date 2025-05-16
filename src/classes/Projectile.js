@@ -11,8 +11,6 @@ export class Projectile extends Phaser.GameObjects.Sprite {
         this.damage = damage;
         this.paused = false;
 
-        console.log("PROJECTILE CREATED");
-
         this.setDepth(this.scene.aheadTowersDepth);
         this.setDisplaySize(width, height);
 
