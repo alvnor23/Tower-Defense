@@ -17,14 +17,14 @@ export class Enemy extends Phaser.GameObjects.Sprite {
         this.range = properties.range || 1;
         this.damage = properties.damage || 20;
         this.health = properties.health || 100;
-        this.money = properties.money || 100;
+        this.money = properties.money || 200;
         this.points = properties.points || 100;
         this.width = properties.width || 100;
         this.hitableWidth = properties.hitableWidth || this.width;
         this.height = properties.height || 100;
         this.hitFrame = properties.hitFrame || 6;
-        this.row = row;        
-        
+        this.row = row;
+
         this.setDepth(scene.towersDepth + this.row + 0.5); // 0.5 to ensure it's above tower if on same tile
         this.gameWidth = this.scene.sys.game.config.width;
 
@@ -109,19 +109,28 @@ export class Enemy extends Phaser.GameObjects.Sprite {
 
     // returns tower in range if it exists, otherwise undefined
     towerInRange() {
-        const tower = Tower.placedTowers.find(tower => tower.x - this.x < this.scene.tileWidth * this.range &&
-         this.row == tower.row && tower.x - this.x >= 0);
+        const tower = Tower.placedTowers.find(tower => {
+            const dx = tower.x - this.x;
+            const inRange = dx >= 0 && dx <= this.scene.tileWidth * this.range;
+
+            return inRange && this.row == tower.row;
+        });
         return tower;
     }
 
     togglePause() {
         this.paused = !this.paused;
-        if (this.paused) {
-            this.moveTween.paused = true;
-            this.anims.pause();
-        } else {
-            if (!this.isDead) this.moveTween.paused = false;
-            this.anims.resume();
+
+        if (this.moveTween) {
+            this.moveTween.paused = this.paused;
+        }
+
+        if (this.anims.currentAnim) {
+            if (this.paused) {
+                this.anims.pause();
+            } else {
+                this.anims.resume();
+            }
         }
     }
 
@@ -130,11 +139,17 @@ export class Enemy extends Phaser.GameObjects.Sprite {
         this.targetTower = this.towerInRange();
 
         this.play(this.textureKey + '_attack');
+
+        this.off("animationupdate");
         this.on('animationupdate', (animation, frame) => {
+            if (this.paused) return;
             if (frame.index === this.hitFrame) {
                 if (this.targetTower && !this.targetTower.isDead) {
                     this.targetTower.hurt(this.damage);
                 }
+            }
+            if (this.targetTower?.isDead) {
+                this.stopAttackingAndMove();
             }
         });
     }
@@ -143,7 +158,6 @@ export class Enemy extends Phaser.GameObjects.Sprite {
         this.isAttacking = false;
         this.targetTower = null;
         this.anims.stop();
-        if (this.moveTween) this.moveTween.stop();
         this.move();
     }
 
@@ -167,7 +181,7 @@ export class Enemy extends Phaser.GameObjects.Sprite {
         this.scene.points += this.points;
 
         this.isDead = true;
-        this.moveTween.paused = true;
+        this.togglePause();
         this.play(this.textureKey + '_death');
         this.once('animationcomplete', () => { this.destroySelf() });
     }

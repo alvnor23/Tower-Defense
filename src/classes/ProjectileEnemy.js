@@ -21,9 +21,10 @@ export class ProjectileEnemy extends Enemy { // child class to Enemy
             if (frame.index === this.hitFrame && this.isAttacking && !this.isDead) {
                 if (this.targetTower && !this.targetTower.isDead) {
                     this.shootProjectile();
-                } else {
-                    this.stopAttackingAndMove();
                 }
+            }
+            if (!this.isDead && this.targetTower?.isDead) {
+                this.stopAttackingAndMove();
             }
         });
     }

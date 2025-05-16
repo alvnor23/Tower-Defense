@@ -1,5 +1,6 @@
 import { Enemy } from './Enemy.js';
 import { Projectile } from './Projectile.js';
+import { BossEnemy } from './BossEnemy.js';
 
 export class Tower extends Phaser.GameObjects.Sprite { // Tower works as a sprite
 
@@ -46,7 +47,7 @@ export class Tower extends Phaser.GameObjects.Sprite { // Tower works as a sprit
                 repeat: -1
             });
         }
-        this.play(texture + '_idle');        
+        this.play(texture + '_idle');
     }
 
     togglePause() {
@@ -63,7 +64,7 @@ export class Tower extends Phaser.GameObjects.Sprite { // Tower works as a sprit
 
     update() {
         const shootInterval = 10000 / this.shootSpeed; // shootInterval decreases with more shoot speed
-        if (this.aliveEnemyInRange() && (Date.now() - this.shootingTimer) > shootInterval  &&
+        if (this.aliveEnemyInRange() && (Date.now() - this.shootingTimer) > shootInterval &&
             this.scene.gameState != "paused") {
             this.shoot();
         }
@@ -72,9 +73,21 @@ export class Tower extends Phaser.GameObjects.Sprite { // Tower works as a sprit
     aliveEnemyInRange() {
         if (!this.scene) return; // safe check
 
-        const aliveEnemy = Enemy.allEnemies.find(enemy =>
-            this.x - enemy.x < this.scene.tileWidth * this.range && this.row == enemy.row && !enemy.isDead &&
-            this.x - enemy.x >= 0
+        const aliveEnemy = Enemy.allEnemies.find(enemy => {
+            const dx = this.x - enemy.x;
+            const inRange = dx >= 0 && dx <= this.scene.tileWidth * this.range;
+
+            // If enemy is a boss it cares about seeing any part of it
+            // Otherwise it must be on the same row.
+            if (enemy instanceof BossEnemy) {
+                const enemyTop = enemy.y - enemy.displayHeight / 2;
+                const enemyBottom = enemy.y + enemy.displayHeight / 2;
+                const overlapY = enemyTop <= this.y && enemyBottom >= this.y;
+                return inRange && !enemy.isDead && overlapY;
+            }
+
+            return inRange && this.row == enemy.row && !enemy.isDead;
+        }
         );
 
         if (aliveEnemy) return true;

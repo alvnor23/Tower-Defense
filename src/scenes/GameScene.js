@@ -1,6 +1,7 @@
 import { Tower } from '../classes/Tower.js';
 import { Enemy } from '../classes/Enemy.js';
 import { ProjectileEnemy } from '../classes/ProjectileEnemy.js';
+import { BossEnemy } from '../classes/BossEnemy.js';
 
 export class GameScene extends Phaser.Scene {
     constructor() {
@@ -21,7 +22,7 @@ export class GameScene extends Phaser.Scene {
         this.load.image('upgrade', 'assets/buttons/upgrade.png');
         this.load.image('sell', 'assets/buttons/sell.png');
         this.load.image('close', 'assets/buttons/close.png');
-        this.load.image('deathScreenButton', 'assets/buttons/simple/12.png'); // fix when removing useless media
+        this.load.image('deathScreenButton', 'assets/buttons/simple/12.png');
 
         // coin
         this.load.image('coin', 'assets/coin.png');
@@ -73,8 +74,6 @@ export class GameScene extends Phaser.Scene {
     }
 
     create() { // Displays objects on screen
-        const centerX = this.cameras.main.centerX;
-        const centerY = this.cameras.main.centerY;
         this.gameHeight = this.sys.game.config.height;
         this.gameWidth = this.sys.game.config.width;
         this.menuColor = 0x0000066;
@@ -92,7 +91,7 @@ export class GameScene extends Phaser.Scene {
         this.gridRows = 5;
         this.gridColumns = 12;
         this.tileWidth = this.gameWidth / this.gridColumns;
-        this.bridgeY = 16 * this.gameHeight / 50;
+        this.bridgeY = 16 * this.gameHeight / 50; // upper line of game grid, based on background image
         this.bridgeHeight = 8 * this.gameHeight / 20;
         this.tileHeight = this.bridgeHeight / this.gridRows;
 
@@ -100,15 +99,15 @@ export class GameScene extends Phaser.Scene {
         this.behindTowersDepth = 0
         this.towersDepth = 50
         this.aheadTowersDepth = 100;
-        this.deathScreenDepth = 200;
+        this.endScreenDepth = 200;
 
         // Infobar along the bottom
-        const infoBarHeight = this.gameHeight / 10;
-        this.infoBar = this.add.rectangle(this.gameWidth / 2, this.gameHeight - infoBarHeight / 2,
-            this.gameWidth, infoBarHeight, this.menuColor, 1);
+        this.infoBarHeight = this.gameHeight / 10;
+        this.infoBar = this.add.rectangle(this.gameWidth / 2, this.gameHeight - this.infoBarHeight / 2,
+            this.gameWidth, this.infoBarHeight, this.menuColor, 1);
 
         // items placed in infoBar get x and y position later
-        this.startButton = this.createButton(0, 0, 'playButton', { width: 90, height: 90 },
+        this.startButton = this.createButton(0, 0, 'playButton', { width: 85, height: 85 },
             () => {
                 const buttonImg = this.startButton.list[0];
                 if (buttonImg.texture.key == "playButton") { // == game is paused or not started
@@ -140,7 +139,7 @@ export class GameScene extends Phaser.Scene {
         this.roundText = this.add.text(0, 0, `Round: ${this.round}`, { fontSize: '50px' }).setOrigin(0, 0.5);
         this.pointsText = this.add.text(0, 0, `Points: ${this.convertToK(this.points)}`, { fontSize: '50px' }).setOrigin(0, 0.5);
 
-        this.infoBarItems = this.add.container(this.gameWidth / 15, this.gameHeight - infoBarHeight / 2, [
+        this.infoBarItems = this.add.container(this.gameWidth / 15, this.gameHeight - this.infoBarHeight / 2, [
             this.startButton, this.healthText, this.moneyText, this.roundText, this.pointsText
         ]);
         this.adjustInfoX(); // position info elements
@@ -150,20 +149,20 @@ export class GameScene extends Phaser.Scene {
         this.shopExtensionWidth = 70;
 
         // background
-        this.background = this.add.image(centerX, centerY - infoBarHeight / 2, 'background')
-            .setDisplaySize(this.gameWidth, this.gameHeight - infoBarHeight)
+        this.background = this.add.image(this.gameWidth / 2, (this.gameHeight - this.infoBarHeight) / 2, 'background')
+            .setDisplaySize(this.gameWidth, this.gameHeight - this.infoBarHeight)
             .setDepth(this.behindTowersDepth - 200);
 
 
         // shop for towers
         this.shop = this.add.rectangle(this.gameWidth + this.shopWidth / 2, // x and y is for the center
-            this.gameHeight / 2 - infoBarHeight, this.shopWidth, this.gameHeight, this.menuColor, 0.7);
+            this.gameHeight / 2 - this.infoBarHeight, this.shopWidth, this.gameHeight, this.menuColor, 0.7);
         this.shop.setDepth(this.aheadTowersDepth);
         this.shopActive = false;
 
         // clickable bar extending the shop and toggling it
         this.shopExtension = this.add.rectangle(this.gameWidth - this.shopExtensionWidth / 2,
-            this.gameHeight / 2 - infoBarHeight, this.shopExtensionWidth, this.gameHeight, this.menuColor, 0.7);
+            this.gameHeight / 2 - this.infoBarHeight, this.shopExtensionWidth, this.gameHeight, this.menuColor, 0.7);
         this.shopExtension.setInteractive({ cursor: 'pointer' });
         this.shopExtension.setDepth(this.aheadTowersDepth);
 
@@ -428,40 +427,202 @@ export class GameScene extends Phaser.Scene {
             }
         });
 
-
-        this.rowOccupancy = {};
-        for (let i = 1; i <= this.gridRows; i++) {
-            this.rowOccupancy[`${i}`] = 0;
-        }
-
         // Logic for levels
-        this.levels = [
+        this.levels = {
+            // Level 1: 4 rats
+            "Level 1": this.createLevel(
+                { enemy: "rat", count: 4, column: 0 }
+            ),
 
-            // develop system where one "troop" must be behind another
-            // maybe by saying all rows have an extra occupancy for the troops
-            // that could also allow more spacing between enemies
+            // Level 2: 3 rats 2 horsemen
+            "Level 2": this.createLevel(
+                { enemy: "rat", count: 3, column: 0 },
+                { enemy: "horseman", count: 2, column: -1 }
+            ),
 
-            // also definetly make seperate classes for enemies, especially does with different abilites
-            // than just punch so there is some more variation
-            // orc could be giants and have more health and damage, but be slower
+            // Level 3: 5 rats 5 horsemen
+            "Level 3": this.createLevel(
+                { enemy: "horseman", count: 3, column: 0 },
+                { enemy: "rat", count: 5, column: -1 },
+                { enemy: "horseman", count: 2, column: -2 }
+            ),
 
-            // test level first
-            // { orcWarriors: 1, orcBerserks: 1, rats: 1, horsemen: 1, skeletons: 1, samurais: 1, mages: 1},
-            // { samurais: 1 },
-            { rats: 4 },
-            { rats: 3, horsemen: 2 },
-            { horsemen: 4, rats: 3 },
-            { horsemen: 9, rats: 2, skeletons: 3 },
-            { skeletons: 7 }
-            // rats, horsemen, mages, skeleton
-            // does orc_berserk and orc_warrior work?
-            // also add le samurai boss
-        ];
+            // Level 4: 5 horsemen 2 rats 3 mages
+            "Level 4": this.createLevel(
+                { enemy: "rat", count: 5, column: 0 },
+                { enemy: "horseman", count: 2, column: -1 },
+                { enemy: "mage", count: 3, column: -2 }
+            ),
 
-        // Enemies added as projectile enemies will be of the ProjectileEnemy class (subclass of Enemy)
+            // Level 5: 7 horsemen, 8 mages
+            "Level 5": this.createLevel(
+                { enemy: "horseman", count: 5, column: 0 },
+                { enemy: "horseman", count: 2, column: -1 },
+                { enemy: "mage", count: 3, column: -1 },
+                { enemy: "mage", count: 5, column: -2 }
+            ),
+
+            // Level 6: 9 skeletons
+            "Level 6": this.createLevel(
+                { enemy: "skeleton", count: 3, column: 0 },
+                { enemy: "skeleton", count: 3, column: -1 },
+                { enemy: "skeleton", count: 3, column: -2 }
+            ),
+
+            // Level 7: 10 skeletons, 5 mages, 3 horsemen, 2 rats
+            "Level 7": this.createLevel(
+                { enemy: "skeleton", count: 5, column: 0 },
+                { enemy: "skeleton", count: 2, column: -1 },
+                { enemy: "mage", count: 3, column: -1 },
+                { enemy: "rats", count: 2, column: -2 },
+                { enemy: "skelton", count: 3, column: -2 },
+                { enemy: "mage", count: 2, column: -3 },
+                { enemy: "horseman", count: 3, column: -3 }
+            ),
+
+            // Level 8: 4 orcBerserks, 4 orcWarriors, 3 skeletons, 3 mages 
+            "Level 8": this.createLevel(
+                { enemy: "orcBerserk", count: 2, column: 0 },
+                { enemy: "orcWarrior", count: 2, column: 0},
+                { enemy: "skeleton", count: 3, column: -1 },
+                { enemy: "orcWarrior", count: 1, column: -1 },
+                { enemy: "orcBerserk", count: 1, column: -1 },
+                { enemy: "orcBerserk", count: 1, column: -2 },
+                { enemy: "orcWarrior", count: 1, column: -2 },
+                { enemy: "mage", count: 3, colum: -2 }
+            ),
+
+            // Level 9: 10 orcBerserks, 10 orcWarriors, 10 mages, 10 rats
+            "Level 9": this.createLevel(
+                { enemy: "rat", count: 5, column: 0 },
+                { enemy: "rat", count: 5, column: 0 },
+                { enemy: "orcWarrior", count: 3, column: -1 },
+                { enemy: "mage", count: 2, column: -1 },
+                { enemy: "orcBerserk", count: 3, column: -2 },
+                { enemy: "mage", count: 2, column: -2 },
+                { enemy: "orcWarrior", count: 5, column: -3 },
+                { enemy: "orcBerserk", count: 5, column: -4 },
+                { enemy: "orcBerserk", count: 2, column: -5 },
+                { enemy: "orcWarrior", count: 2, column: -5 },
+                { enemy: "mage", count: 1, column: -5 },
+                { enemy: "mage", count: 5, column: -6 },
+            ),
+
+            // Level 10: Samurai boss
+            "Level 10": this.createLevel(
+                { enemy: "samurai", count: 1, column: 0 }
+            )
+        };
+
+        // Idea: make orcs bigger/ like giants?
+        // BTW level speed should normally be very slow like PvZ. TODO: make all things way slower
+
+        // Boss should have visible health bar and die very slowly
+
+        // Make upgrade scaling huge but also make max damage very good idk like 5x start
+
+        // Fix health loss on enemy reaching far side
+
+        this.enemyProperties = {
+            "rat": {
+                width: 160,
+                height: 120,
+                speed: 55,
+                damage: 20,
+                health: 75,
+                money: 200,
+                points: 100,
+                reverseAnimOrder: true,
+            },
+            "horseman": {
+                width: 300,
+                height: 250,
+                speed: 45,
+                damage: 40,
+                health: 130,
+                money: 350,
+                points: 120,
+                reverseAnimOrder: true,
+                hitableWidth: 220
+            },
+            "mage": {
+                width: 150,
+                height: 150,
+                range: 3,
+                speed: 35,
+                damage: 55,
+                health: 100,
+                money: 350,
+                points: 130,
+                reverseAnimOrder: true,
+                hitableWidth: 70
+            },
+            "orcBerserk": {
+                width: 240,
+                height: 240,
+                speed: 40,
+                damage: 115,
+                health: 250,
+                money: 700,
+                points: 200,
+                runFrames: 7,
+                attackFrames: 5,
+                deathFrames: 4,
+                hitFrame: 5,
+                hitableWidth: 125
+            },
+            "orcWarrior": {
+                width: 240,
+                height: 240,
+                speed: 35,
+                damage: 125,
+                health: 220,
+                money: 700,
+                points: 200,
+                runFrames: 7,
+                attackFrames: 4,
+                deathFrames: 4,
+                hitFrame: 4,
+                hitableWidth: 125
+            },
+            "skeleton": {
+                width: 180,
+                height: 180,
+                speed: 40,
+                damage: 110,
+                health: 250,
+                money: 800,
+                points: 250,
+                runFrames: 8,
+                attackFrames: 7,
+                deathFrames: 3,
+                hitableWidth: 100
+            },
+            "samurai": {
+                width: 620,
+                height: 620,
+                speed: 20,
+                damage: 9999999,
+                health: 3000,
+                money: 15000,
+                points: 10000,
+                runFrames: 9,
+                attackFrames: 5,
+                hitFrame: 5,
+                hitableWidth: 350
+            }
+        };
+
+        // ProjectileEnemy class (subclass of Enemy)
         this.projectileEnemies = [
             "mage"
-        ];        
+        ];
+
+        // BossEnemy class (subclass of Enemy)
+        this.bossEnemies = [
+            "samurai"
+        ]
+        this.round = 9; // 9 . remove
     }
 
     update(t, dt) { // game loop following continuous actions
@@ -490,7 +651,7 @@ export class GameScene extends Phaser.Scene {
         if (this.health <= 0 && !this.dead) {
             this.dead = true;
             this.health = 0;
-            this.endGame();
+            this.endGame("loss");
         }
 
         // If enemies cleared, allow next wave to be started
@@ -508,23 +669,26 @@ export class GameScene extends Phaser.Scene {
     }
 
     // Pause game, disable game interactivity, show death screen 
-    endGame() {
+    endGame(gameOutcome) {
         this.pauseGame();
 
         // disable other interactivity
+        Tower.placedTowers?.forEach(tower => tower?.disableInteractive());
         this.startButton.disableInteractive();
-        this.stopButton.disableInteractive();
         this.shopExtension.disableInteractive();
 
         // tint overlay 
-        this.deathScreenOverlay = this.add.rectangle(this.gameWidth / 2, this.gameHeight / 2, this.gameWidth, this.gameHeight, 0x000000, 0.4)
-            .setDepth(this.deathScreenDepth);
+        this.endScreenOverlay = this.add.rectangle(this.gameWidth / 2, this.gameHeight / 2, this.gameWidth, this.gameHeight, 0x000000, 0.4)
+            .setDepth(this.endScreenDepth);
 
-        // 'You died' text
-        this.deathScreenText = this.add.text(this.gameWidth / 2, this.gameHeight / 7, 'You Died', {
+        // game outcome text
+        let gameOutcomeText;
+        if (gameOutcome == "loss") gameOutcomeText = 'You died';
+        else if (gameOutcome == "win") gameOutcomeText = 'Victory!';
+        this.endScreenText = this.add.text(this.gameWidth / 2, this.gameHeight / 7, gameOutcomeText, {
             fontSize: '200px',
             color: '#ffffff'
-        }).setOrigin(0.5).setDepth(this.deathScreenDepth);
+        }).setOrigin(0.5).setDepth(this.endScreenDepth);
 
         // scores
         const score = this.add.text(0, 0, `Score: ${this.points}`, { fontSize: '80px', color: 'white' }).setOrigin(0.5);
@@ -536,8 +700,8 @@ export class GameScene extends Phaser.Scene {
         this.registry.set('highScore', this.highScore);
 
         // score container
-        this.deathSceneScores = this.add.container(this.gameWidth / 2, this.gameHeight / 3, [score, highScore])
-            .setDepth(this.deathScreenDepth);
+        this.endScreenScores = this.add.container(this.gameWidth / 2, this.gameHeight / 3, [score, highScore])
+            .setDepth(this.endScreenDepth);
 
         // buttons
         const buttonWidth = this.gameWidth / 3;
@@ -556,14 +720,13 @@ export class GameScene extends Phaser.Scene {
         const restartButton = this.createButton(0, 0, 'deathScreenButton', bounds,
             () => {
                 // remove overlay
-                this.deathScreenOverlay.destroy();
-                this.deathScreenText.destroy();
-                this.deathSceneScores.destroy();
-                this.deathScreenButtons.destroy();
+                this.endScreenOverlay.destroy();
+                this.endScreenText.destroy();
+                this.endScreenScores.destroy();
+                this.endScreenButtons.destroy();
 
                 // restore interactity
                 this.startButton.setInteractive();
-                this.stopButton.setInteractive();
                 this.shopExtension.setInteractive();
 
                 // restart
@@ -579,8 +742,8 @@ export class GameScene extends Phaser.Scene {
             }).add(homeText);
 
         // button container
-        this.deathScreenButtons = this.add.container(restartButtonX, restartButtonY, [restartButton, homeButton])
-            .setDepth(this.deathScreenDepth);
+        this.endScreenButtons = this.add.container(restartButtonX, restartButtonY, [restartButton, homeButton])
+            .setDepth(this.endScreenDepth);
     }
 
     pauseGame() {
@@ -697,7 +860,7 @@ export class GameScene extends Phaser.Scene {
         const maxValue = startValue + 5; // 5 upgrades from start value available
 
         const statLabel = this.add.text(0, 0, `${stat[0].toUpperCase() + stat.substring(1)} (${tower[stat]})`, { fontSize: `${fontSize}px`, color: textColor });
-        
+
         const statInstallments = this.createStatInstallmentsBar(0, fontSize, tower.upgrades[stat], 5);
         const upgradePriceText = this.add.text(0, 0, `${price < 300 ? price : "max"}`, { fontSize: btnFontSize, color: textColor }).setOrigin(0.5);
         const upgradeButton = this.createButton(0, 0, "upgrade", { width: btnWidth, height: btnHeight }, () => {
@@ -815,97 +978,74 @@ export class GameScene extends Phaser.Scene {
         [...Tower.placedTowers].forEach(tower => tower.destroySelf()); // copy arrray handles deleting elements
         [...Enemy.allEnemies].forEach(enemy => enemy.destroySelf());
 
-        for (let i = 1; i <= this.gridRows; i++) {
-            this.rowOccupancy[`${i}`] = 0;
-        }
-
         this.gameState = "inactive";
         this.startButton.list[0].setTexture('playButton');
     }
 
-    // BTW level speed should normally be very slow like PvZ. TODO: make all things way slower
+    // From any amount of objects (enemygroup), each containing an enemy and how many to place in one column,
+    // this function returns an array containing every individual enemy as an object in the
+    // same format with its type, column but also row (randomly generated) 
+    createLevel(...enemyGroups) {
+        const spawns = enemyGroups.flatMap(group => {
+            // Row randomly generated from available rows
 
-    // enemy health and damage could maybe go up with later rounds
-    // BTW REMEMBER I COULD USE MY VARIABLE THIS.ROUND
+            // Array [1, 2.. grid rows]
+            let availableRows = Array.from({ length: this.gridRows }, (_, i) => i + 1);
 
-    applyLevel(levelIndex) {
+            return Array.from({ length: group.count }, () => {
+                const randomIndex = Math.floor(Math.random() * availableRows.length);
+                const row = availableRows.splice(randomIndex, 1)[0]; // Remove from available rows and return the row
+
+                return { type: group.enemy, column: group.column, row };
+            });
+        });
+
+        return spawns;
+    }
+
+    applyLevel(level) {
         // begin by removing previous enemies and clearing rows
         Enemy.allEnemies.forEach(enemy => enemy.destroy());
         Enemy.allEnemies = []; // secure array is empty
-        for (let i = 1; i <= this.gridRows; i++) {
-            this.rowOccupancy[`${i}`] = 0;
-        }
 
-        const level = this.levels[levelIndex - 1];
-
-        // TODO: Add speed!, range, damage! and health! where necessary. samurai should basically 1-hit
-
-        if (level.rats) {
-            this.spawnEnemy('rat', level.rats, { width: 160, height: 90, speed: 100, reverseAnimOrder: true });
-        }
-        if (level.horsemen) {
-            this.spawnEnemy('horseman', level.horsemen, { width: 300, height: 250, reverseAnimOrder: true, hitableWidth: 220 });
-        }
-        if (level.mages) {
-            this.spawnEnemy('mage', level.mages, { width: 150, height: 150, range: 3, reverseAnimOrder: true, hitableWidth: 70 });
-        }
-        if (level.orcBerserks) {
-            this.spawnEnemy('orcBerserk', level.orcBerserks,
-                { width: 220, height: 220, runFrames: 7, attackFrames: 5, deathFrames: 4, hitFrame: 5, hitableWidth: 125 });
-        }
-        if (level.orcWarriors) {
-            this.spawnEnemy('orcWarrior', level.orcWarriors,
-                { width: 220, height: 220, runFrames: 7, attackFrames: 4, deathFrames: 4, hitFrame: 4, hitableWidth: 125 });
-        }
-        if (level.skeletons) {
-            this.spawnEnemy('skeleton', level.skeletons,
-                { width: 180, height: 180, runFrames: 8, attackFrames: 7, deathFrames: 3, hitableWidth: 100 });
-        }
-        if (level.samurais) { 
-            this.spawnEnemy('samurai', level.samurais,
-                { width: 620, height: 620, speed: 30, runFrames: 9, attackFrames: 5, hitFrame: 5, hitableWidth: 350 });
-        } 
-    }
-
-    spawnEnemy(type, count, properties) {
-        // TODO: add bossEnemy and add comment to it that updates will come to it
-        // IDEA: make so boss move up and down in map - adds challenge
-        // Boss should have visible health bar and die very slowly
-        // SideNote: remember to make victory Screen (like death screen but victory text?)
-        for (let i = 0; i < count; i++) {
-            let [x, y, row, column] = this.enemySpawnPos(properties.width, properties.height);
-
-            let enemy;
-            if (this.projectileEnemies.includes(type)) {
-                if (type == "mage") y -= 50; // make mage float
-                enemy = new ProjectileEnemy(this, x, y, row, type, properties);
-            }
-            else {
-                enemy = new Enemy(this, x, y, row, type, properties);
-            }
-            this.time.delayedCall(10, () => { // ...displaySize needs delay for object initialization
-                enemy.width = properties.width;
-                enemy.height = properties.height;
-                enemy.setDisplaySize(enemy.width, enemy.height);
-            });
+        const enemies = this.levels[`Level ${level}`];
+        console.log(this.levels, level, this.levels[`Level ${level}`]);
+        for (const enemy of enemies) {
+            this.spawnEnemy(enemy.type, enemy.row, enemy.column, this.enemyProperties[enemy.type]);
         }
     }
 
-    // returns position enemy can spawn in as well as the row.
-    // the row is random and the x is either the start (left) or further left depending on row occupancy
-    enemySpawnPos(width, height) {
-        const row = Math.floor(Math.random() * this.gridRows) + 1;
+    spawnEnemy(type, row, column, properties) {
+        let [x, y] = this.enemySpawnPos(row, column, properties.width, properties.height);
+        let enemy;
 
-        const enemySpacing = 100; // adjust
+        if (this.projectileEnemies.includes(type)) {
+            if (type == "mage") y -= 50; // make mage float
+            enemy = new ProjectileEnemy(this, x, y, row, type, properties);
+        } else if (this.bossEnemies.includes(type)) {
+            enemy = new BossEnemy(this, x, y, row, type, properties);
+        } else {
+            enemy = new Enemy(this, x, y, row, type, properties);
+        }
 
-        // x depends on enemy width (1/2 because x is the center) and the enemy count on the same row
-        const x = -width / 2 - enemySpacing * this.rowOccupancy[row];
+        // small delay needed for object initialization before display size can be changed
+        this.time.delayedCall(10, () => {
+            enemy.width = properties.width;
+            enemy.height = properties.height;
+            enemy.setDisplaySize(enemy.width, enemy.height);
+        })
+    }
 
+    // returns x and y for enemy to spawn in depending on row and column
+    enemySpawnPos(row, column, width, height) {
+        // x value given so column 0 means the enemy is just not visible and every column adds a space equal to tileWidth
+        // const x = -width / 2 + this.tileWidth * column;
+        const x = 300;
+
+        // y value given so the bottom of the enemy gets placed on the middle of its row.
         const y = this.bridgeY + this.tileHeight * (row - 0.5) - height / 2;
 
-        this.rowOccupancy[row]++;
-
-        return [x, y, row];
+        return [x, y];
     }
 
     createButton(x, y, texture, bounds, callback) {

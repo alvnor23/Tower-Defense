@@ -1,5 +1,6 @@
 import { Enemy } from './Enemy.js';
 import { Tower } from './Tower.js';
+import { BossEnemy } from './BossEnemy.js';
 
 export class Projectile extends Phaser.GameObjects.Sprite {
     constructor(scene, x, y, texture, width, height, speed, shooter, damage = 20) {
@@ -50,6 +51,15 @@ export class Projectile extends Phaser.GameObjects.Sprite {
                 const enemyRight = enemyLeft + enemy.hitableWidth;
                 const overlapX = thisRight >= enemyLeft && thisLeft <= enemyRight;
 
+                // Projectile will hit any part of enemy that is a boss
+                // but only enemies on same row if not.
+                if (enemy instanceof BossEnemy) {
+                    const enemyTop = enemy.y - enemy.displayHeight / 2;
+                    const enemyBottom = enemy.y + enemy.displayHeight / 2;
+                    const overlapY = enemyTop <= this.y && enemyBottom >= this.y;
+                    return overlapX && !enemy.isDead && overlapY;
+                }
+
                 return overlapX && !enemy.isDead && this.shooter.row === enemy.row;
             });
 
@@ -60,7 +70,7 @@ export class Projectile extends Phaser.GameObjects.Sprite {
             const targetTowers = Tower.placedTowers.filter(tower => {
                 const towerLeft = tower.x - tower.displayWidth / 2;
                 const towerRight = tower.x + tower.displayWidth / 2;
-                const overlapX = thisRight >= towerLeft && thisLeft <= towerRight; 
+                const overlapX = thisRight >= towerLeft && thisLeft <= towerRight;
 
                 return overlapX && !tower.isDead && this.shooter.row === tower.row;
             });
