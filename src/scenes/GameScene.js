@@ -547,7 +547,6 @@ export class GameScene extends Phaser.Scene {
                 { enemy: "samurai", count: 1, column: 0 }
             )
         };
-
         this.enemyProperties = {
             "rat": {
                 width: 160,
