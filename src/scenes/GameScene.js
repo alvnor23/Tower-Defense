@@ -461,6 +461,7 @@ export class GameScene extends Phaser.Scene {
             }
         });
 
+
         // Logic for levels
         this.levels = {
             // Level 1: 4 rats
