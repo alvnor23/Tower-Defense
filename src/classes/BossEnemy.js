@@ -34,7 +34,7 @@ export class BossEnemy extends Enemy {
                 };
             },
             onComplete: () => {
-                this.scene.healthText.setText(`Health: ${this.scene.health = 0}`);
+                this.scene.health = 0; // game lost regardless of health of boss left
                 this.destroySelf();
             }
         });
@@ -115,7 +115,7 @@ export class BossEnemy extends Enemy {
         this.healthBarBg.fillStyle(0x222222, 1);
         this.healthBarBg.fillRect(barX - barWidth / 2, barY, barWidth, barHeight);
 
-        const healthRatio = this.health / this.maxHealth;
+        const healthRatio = Math.max(this.health, 0) / this.maxHealth;
 
         // Health - red
         this.healthBar.fillStyle(0xff0000, 1);

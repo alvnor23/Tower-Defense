@@ -100,7 +100,7 @@ export class Enemy extends Phaser.GameObjects.Sprite {
                 };
             },
             onComplete: () => {
-                this.scene.healthText.setText(`Health: ${this.scene.health -= this.health}`);
+                this.scene.health -= this.health;
                 this.destroySelf();
             }
         });

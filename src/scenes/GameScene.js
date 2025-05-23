@@ -27,7 +27,7 @@ export class GameScene extends Phaser.Scene {
         // coin
         this.load.image('coin', 'assets/coin.png');
 
-        // towers
+        // Towers
         this.load.spritesheet('archerTower', 'assets/towers/1.png', { frameWidth: 70, frameHeight: 130 });
         this.load.spritesheet('mageTower', 'assets/towers/3.png', { frameWidth: 70, frameHeight: 130 });
         this.load.spritesheet('fireTower', 'assets/towers/4.png', { frameWidth: 70, frameHeight: 130 });
@@ -37,6 +37,8 @@ export class GameScene extends Phaser.Scene {
         this.load.image('mageOrb', 'assets/projectiles/mageOrb.png'); // for mage enemy
         this.load.image('arrow', 'assets/projectiles/arrow.png');
         this.load.image('fire', 'assets/projectiles/fire.png');
+
+        // Enemies
 
         // rat
         this.load.atlas('rat_run', 'assets/enemies/rat/run/texture.png', 'assets/enemies/rat/run/texture.json');
@@ -81,7 +83,7 @@ export class GameScene extends Phaser.Scene {
 
         // Start values
         this.health = 300;
-        this.money = 600;
+        this.money = 500;
         this.round = 0;
         this.points = 0;
         this.highScore = this.registry.get('highScore') || 0; // either 0 or previous high score
@@ -196,22 +198,21 @@ export class GameScene extends Phaser.Scene {
         this.towerWidthInGame = 120;
         this.towerHeightInGame = (towerFrameHeight / towerFrameWidth) * (this.towerWidthInGame); // Maintain aspect ratio
 
-        this.towers = this.add.group([ // groups are like arrays but make managing similar game objects easier
+        // Towers in shop with their properties
+        this.shopTowers = this.add.container(this.gameWidth + this.shopWidth / 2, towerFrameHeight, [
             new Tower(this, 0, 0, 'archerTower', {
-                health: 100, range: 10, damage: 10, shootSpeed: 5, projectileTexture: 'arrow'
+                health: 100, range: 7, damage: 10, shootSpeed: 4, projectileTexture: 'arrow'
             }),
             new Tower(this, 0, 0, 'fireTower', {
-                health: 100, range: 3, damage: 25, shootSpeed: 3, projectileTexture: 'fire'
+                health: 120, range: 3, damage: 25, shootSpeed: 3, projectileTexture: 'fire'
             }),
             new Tower(this, 0, 0, 'mageTower', {
-                health: 100, range: 5, damage: 40, shootSpeed: 2, projectileTexture: 'magic', projectileWidth: 50, projectileHeight: 25
+                health: 140, range: 5, damage: 40, shootSpeed: 2, projectileTexture: 'magic', projectileWidth: 50, projectileHeight: 25
             }),
-        ]);
+        ]).setDepth(this.aheadTowersDepth);
 
-        this.shopTowers = this.add.container(this.gameWidth + this.shopWidth / 2, towerFrameHeight, this.towers.getChildren())
-            .setDepth(this.aheadTowersDepth);
-
-        Tower.shopTowers = []; // safely add new towers to the array
+        // clean static array counting shop towers and safelly safely add new towers to it
+        Tower.shopTowers = [];
         this.shopTowers.list.forEach(shopTower => {
             Tower.shopTowers.push(shopTower);
             shopTower.input.cursor = 'grab';
@@ -233,15 +234,14 @@ export class GameScene extends Phaser.Scene {
         // tower prices
         this.towerPrices = {
             'archerTower': 120,
-            'fireTower': 700,
-            'mageTower': 2000
+            'fireTower': 400,
+            'mageTower': 1000
         }
 
         // tower stat increments
         this.towerStatIncrements = {
-            // range always incremented by 1
             "range": [1, 1, 1, 1, 1],
-            "damage": [5, 5, 5, 10, 15],
+            "damage": [2, 3, 5, 10, 15],
             "shootSpeed": [1, 2, 3, 3, 4],
             "health": [10, 20, 30, 40, 50]
         }
@@ -250,21 +250,21 @@ export class GameScene extends Phaser.Scene {
         this.towerUpgradesPrices = {
             "archerTower": {
                 "range": [100, 90, 80, 70, 60],
-                "damage": [100, 200, 300, 400, 500],
-                "shootSpeed": [100, 150, 200, 250, 300],
-                "health": [100, 150, 300, 300, 500]
+                "damage": [200, 300, 400, 500, 600],
+                "shootSpeed": [200, 250, 300, 350, 400],
+                "health": [150, 200, 350, 350, 550]
             },
             "fireTower": {
                 "range": [200, 250, 300, 250, 200],
-                "damage": [150, 250, 350, 450, 550],
-                "shootSpeed": [200, 300, 400, 500, 600],
-                "health": [150, 200, 350, 350, 550]
+                "damage": [250, 350, 450, 550, 650],
+                "shootSpeed": [250, 300, 400, 500, 600],
+                "health": [200, 250, 300, 400, 550]
             },
             "mageTower": {
                 "range": [300, 400, 500, 500, 500],
-                "damage": [250, 350, 450, 550, 650],
+                "damage": [350, 450, 550, 650, 750],
                 "shootSpeed": [400, 500, 600, 700, 800],
-                "health": [200, 250, 400, 400, 600]
+                "health": [200, 250, 400, 500, 600]
             }
         }
 
@@ -548,6 +548,8 @@ export class GameScene extends Phaser.Scene {
                 { enemy: "samurai", count: 1, column: 0 }
             )
         };
+
+        // enemy properties
         this.enemyProperties = {
             "rat": {
                 width: 160,
@@ -555,8 +557,8 @@ export class GameScene extends Phaser.Scene {
                 speed: 55,
                 damage: 20,
                 health: 70,
-                money: 200,
-                points: 100,
+                money: 100,
+                points: 50,
                 reverseAnimOrder: true,
             },
             "horseman": {
@@ -565,7 +567,7 @@ export class GameScene extends Phaser.Scene {
                 speed: 45,
                 damage: 40,
                 health: 130,
-                money: 350,
+                money: 140,
                 points: 120,
                 reverseAnimOrder: true,
                 hitableWidth: 220
@@ -573,11 +575,11 @@ export class GameScene extends Phaser.Scene {
             "mage": {
                 width: 150,
                 height: 150,
-                range: 3,
-                speed: 35,
+                range: 4,
+                speed: 42,
                 damage: 55,
                 health: 100,
-                money: 350,
+                money: 120,
                 points: 130,
                 reverseAnimOrder: true,
                 hitableWidth: 70
@@ -588,7 +590,7 @@ export class GameScene extends Phaser.Scene {
                 speed: 40,
                 damage: 115,
                 health: 250,
-                money: 700,
+                money: 250,
                 points: 200,
                 runFrames: 7,
                 attackFrames: 5,
@@ -602,7 +604,7 @@ export class GameScene extends Phaser.Scene {
                 speed: 35,
                 damage: 125,
                 health: 220,
-                money: 700,
+                money: 250,
                 points: 200,
                 runFrames: 7,
                 attackFrames: 4,
@@ -616,7 +618,7 @@ export class GameScene extends Phaser.Scene {
                 speed: 40,
                 damage: 110,
                 health: 250,
-                money: 800,
+                money: 350,
                 points: 250,
                 runFrames: 8,
                 attackFrames: 7,
@@ -628,7 +630,7 @@ export class GameScene extends Phaser.Scene {
                 height: 620,
                 speed: 20,
                 damage: 9999999,
-                health: 1500,
+                health: 5000,
                 money: 0,
                 points: 10000,
                 runFrames: 9,
@@ -698,7 +700,7 @@ export class GameScene extends Phaser.Scene {
         Tower.placedTowers?.forEach(tower => tower?.update?.());
     }
 
-    // Pause game, disable game interactivity, show death screen 
+    // Pause game, disable game interactivity, show end screen 
     endGame(gameOutcome) {
         this.pauseGame();
 
@@ -726,7 +728,7 @@ export class GameScene extends Phaser.Scene {
 
         // game outcome text
         let gameOutcomeText;
-        if (gameOutcome == "loss") gameOutcomeText = 'You died';
+        if (gameOutcome == "loss") gameOutcomeText = 'You lost';
         else if (gameOutcome == "win") gameOutcomeText = 'Victory!';
         this.endScreenText = this.add.text(this.gameWidth / 2, this.gameHeight / 7, gameOutcomeText, {
             fontSize: '200px',
@@ -907,7 +909,7 @@ export class GameScene extends Phaser.Scene {
         const statLabel = this.add.text(0, 0, `${stat[0].toUpperCase() + stat.substring(1)} (${tower[stat]})`, { fontSize: `${fontSize}px`, color: textColor });
 
         const statInstallments = this.createStatInstallmentsBar(0, fontSize, tower.upgrades[stat], maxUpgrades);
-        const upgradePriceText = this.add.text(0, 0, `${ (tower.upgrades[stat] == maxUpgrades) ? "max" : price}`, { fontSize: btnFontSize, color: textColor }).setOrigin(0.5);
+        const upgradePriceText = this.add.text(0, 0, `${(tower.upgrades[stat] == maxUpgrades) ? "max" : price}`, { fontSize: btnFontSize, color: textColor }).setOrigin(0.5);
         const upgradeButton = this.createButton(0, 0, "upgrade", { width: btnWidth, height: btnHeight }, () => {
             if (this.money >= price && tower.upgrades[stat] != maxUpgrades) {
                 this.money -= price;
@@ -949,7 +951,7 @@ export class GameScene extends Phaser.Scene {
             price = this.towerUpgradesPrices[towerType][stat][tower.upgrades[stat]] || 0;
 
             statLabel.setText(`${stat[0].toUpperCase() + stat.substring(1)} (${tower[stat]})`);
-            upgradePriceText.setText(`${ (tower.upgrades[stat] == maxUpgrades) ? "max" : price}`);
+            upgradePriceText.setText(`${(tower.upgrades[stat] == maxUpgrades) ? "max" : price}`);
             statInstallments.updateValue(tower.upgrades[stat]);
 
             if (this.money < price) {
@@ -1017,7 +1019,7 @@ export class GameScene extends Phaser.Scene {
     // remove enemies, towers and reset values
     resetGame() {
         this.health = 300;
-        this.money = 600;
+        this.money = 500;
         this.round = 0;
         this.points = 0;
         this.dead = false;
